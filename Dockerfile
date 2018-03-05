@@ -1,57 +1,34 @@
-# Scala on Java 7
-#
-# URL: https://github.com/William-Yeh/docker-scala
-#
-# forked from: pulse00/scala
-#              - https://index.docker.io/u/pulse00/scala/
-#              - https://github.com/dubture-dockerfiles/scala
-#
-# Version     0.7
+FROM debian:wheezy 
 
-FROM williamyeh/java7
-MAINTAINER William Yeh <william.pjyeh@gmail.com>
+ENV ASSETS_DIR="/opt/smartentry/HEAD"
+ENV SBT_VERSION 1.0.4
 
+COPY smartentry.sh /sbin/smartentry.sh
 
-ENV SCALA_VERSION 2.11.6
-ENV SCALA_TARBALL http://www.scala-lang.org/files/archive/scala-$SCALA_VERSION.deb
+ENTRYPOINT ["/sbin/smartentry.sh"]
 
+CMD ["run"]
 
-RUN \
-    echo "==> Install curl helper tool..."  && \
-    apt-get update  && \
-    DEBIAN_FRONTEND=noninteractive  apt-get install -y --force-yes curl  && \
-    \
-    \
-    \
-    echo "===> install from Typesafe repo (contains old versions but they have all dependencies we need later on)"  && \
-    curl -sSL http://apt.typesafe.com/repo-deb-build-0002.deb  -o repo-deb.deb  && \
-    dpkg -i repo-deb.deb  && \
-    apt-get update        && \
-    \
-    \
-    \
-    echo "===> install Scala"  && \
-    DEBIAN_FRONTEND=noninteractive \
-        apt-get install -y --force-yes libjansi-java  && \
-    curl -sSL $SCALA_TARBALL -o scala.deb             && \
-    dpkg -i scala.deb                                 && \
-    \
-    \
-    \
-    echo "===> clean up..."  && \
-    rm -f *.deb                            && \
-    apt-get remove -y --auto-remove curl   && \
-    apt-get clean                          && \
-    rm -rf /var/lib/apt/lists/*
+# Java
+RUN apt-get update && \
+	 apt-get install -y default-jdk && \
+	 apt-get install -y wget && \
+	 apt-get install -y curl && \
+	 apt-get install -y default-jre
+
+# Scala
+RUN apt-get remove scala-library scala && \
+	 wget www.scala-lang.org/files/archive/scala-2.11.8.deb
+	
+RUN dpkg -i scala-2.11.8.deb && \
+	 apt-get update && \
+	 apt-get install -y scala
 
 
-# print versions
-#RUN java -version
-
-# scala -version returns code 1 instead of 0 thus "|| true"
-#RUN scala -version || true
-
-
-
-# Define default command.
-CMD ["scala"]
+# SBT
+ Run wget -O- "https://github.com/sbt/sbt/releases/download/v0.13.15/sbt-0.13.15.tgz" \
+    |  tar xzf - -C /usr/local --strip-components=1 \
+    && sbt exit
+VOLUME /app
+WORKDIR /app
+CMD ["sbt"]
